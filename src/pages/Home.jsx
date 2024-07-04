@@ -10,14 +10,27 @@ export default function Home() {
 	const joinChatRoom = async () => {
 		try {
 			const data = {
-				username,
-				roomId,
+				username: username.replace(/\s/g, ''),
+				roomId: roomId.trim(),
 			};
+			if (data.username.length === 0) {
+				alert('Username should not be empty');
+			}
+			if (data.roomId.length === 0) {
+				alert('Room Id should not be empty');
+			}
 			const resp = await fetchJoinRoom(data);
 
 			if (resp.code !== 201) {
 				alert(resp.message);
 			} else {
+				localStorage.setItem(
+					'roomChat',
+					JSON.stringify({
+						username: username.replace(/\s/g, ''),
+						roomId: resp.data._id,
+					})
+				);
 				navigate(`/${resp.data.roomId}`);
 			}
 		} catch (error) {
@@ -35,6 +48,7 @@ export default function Home() {
 						id='username'
 						className='bg-[#E8E8E8] p-2 rounded-md w-full'
 						placeholder='Username'
+						value={username}
 						onChange={(ev) => setUsername(ev.target.value)}
 					/>
 				</div>
@@ -44,6 +58,7 @@ export default function Home() {
 						id='roomId'
 						className='bg-[#E8E8E8] p-2 rounded-md w-full'
 						placeholder='Room ID'
+						value={roomId}
 						onChange={(ev) => setRoomId(ev.target.value)}
 					/>
 				</div>
