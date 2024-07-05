@@ -3,7 +3,7 @@ import { getAllMessages, sendMessage } from '../service';
 import { IoMdArrowUp } from 'react-icons/io';
 import { useNavigate } from 'react-router-dom';
 
-export default function Chat() {
+export default function Chat({ socket }) {
 	const [data, setData] = useState([]);
 	const [roomName, setRoomName] = useState('');
 	const [username, setUsername] = useState('');
@@ -35,7 +35,10 @@ export default function Chat() {
 			const resp = await sendMessage(data);
 
 			if (resp.code === 201) {
-				await handleFetchAllMessages(dataRoom.roomId);
+				socket.emit('addMessage', {
+					roomId: dataRoom.roomId,
+				});
+				// await handleFetchAllMessages(dataRoom.roomId);
 				setMessage('');
 			}
 		} catch (error) {
@@ -45,9 +48,36 @@ export default function Chat() {
 
 	useEffect(() => {
 		const dataRoom = JSON.parse(localStorage.getItem('roomChat'));
+		if (socket) {
+			socket.emit('joinRoom', {
+				roomId: dataRoom.roomId,
+				username: dataRoom.username,
+			});
+		}
+		return () => {
+			if (socket) {
+				socket.emit('leaveRoom', {
+					roomId: dataRoom.roomId,
+					username: dataRoom.username,
+				});
+			}
+		};
+	}, [socket]);
+
+	useEffect(() => {
+		const dataRoom = JSON.parse(localStorage.getItem('roomChat'));
 		setUsername(dataRoom.username);
 		handleFetchAllMessages(dataRoom.roomId);
 	}, [handleFetchAllMessages]);
+
+	useEffect(() => {
+		if (socket) {
+			socket.on('newMessage', () => {
+				const dataRoom = JSON.parse(localStorage.getItem('roomChat'));
+				handleFetchAllMessages(dataRoom.roomId);
+			});
+		}
+	}, [socket, handleFetchAllMessages]);
 
 	return (
 		<main className='bg-white w-1/3 p-5 flex flex-col justify-between gap-10 items-center'>
@@ -55,6 +85,7 @@ export default function Chat() {
 				<button
 					className='self-start text-xl text-[#5DB075]'
 					onClick={() => {
+						localStorage.removeItem('roomChat');
 						navigate(-1);
 					}}
 				>
